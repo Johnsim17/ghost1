@@ -1,0 +1,66 @@
+require("dotenv").config();
+const { REST, Routes, ApplicationCommandOptionType } = require("discord.js");
+
+const commands = [
+  {
+    name: "addrole",
+    description: "Adiciona um cargo a um membro",
+    options: [
+      { name: "usuario", type: ApplicationCommandOptionType.User, description: "Usuário alvo", required: true },
+      { name: "cargo", type: ApplicationCommandOptionType.Role, description: "Cargo a adicionar", required: true },
+    ],
+  },
+  {
+    name: "removerole",
+    description: "Remove um cargo de um membro",
+    options: [
+      { name: "usuario", type: ApplicationCommandOptionType.User, description: "Usuário alvo", required: true },
+      { name: "cargo", type: ApplicationCommandOptionType.Role, description: "Cargo a remover", required: true },
+    ],
+  },
+  {
+    name: "addprimeiradama",
+    description: "Adiciona o cargo First Lady a um membro",
+    options: [
+      { name: "usuario", type: ApplicationCommandOptionType.User, description: "Membro alvo", required: true },
+    ],
+  },
+  {
+    name: "removeprimeiradama",
+    description: "Remove o cargo First Lady de um membro",
+    options: [
+      { name: "usuario", type: ApplicationCommandOptionType.User, description: "Membro alvo", required: true },
+    ],
+  },
+  {
+    name: "permprimeiradama",
+    description: "Gerencia quem pode adicionar/remover o cargo First Lady",
+    options: [
+      { name: "usuario", type: ApplicationCommandOptionType.User, description: "Membro alvo", required: true },
+    ],
+  },
+  {
+    name: "sorteio",
+    description: "Cria um sorteio no servidor",
+    options: [
+      { name: "tempo", type: ApplicationCommandOptionType.String, description: "Duração (ex: 10s, 1m, 2h)", required: true },
+      { name: "premio", type: ApplicationCommandOptionType.String, description: "Prêmio do sorteio", required: true },
+      { name: "vencedores", type: ApplicationCommandOptionType.Integer, description: "Número de vencedores", required: true },
+    ],
+  },
+];
+
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+
+(async () => {
+  try {
+    console.log("🚀 Registrando comandos (slash)...");
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+      { body: commands },
+    );
+    console.log("✅ Slash commands registrados com sucesso!");
+  } catch (err) {
+    console.error("❌ Erro ao registrar comandos:", err);
+  }
+})();

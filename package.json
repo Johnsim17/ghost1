@@ -1,0 +1,20 @@
+{
+  "name": "ghost-family-bot",
+  "version": "1.0.0",
+  "description": "Bot Ghost Family + Painel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.16.1",
+    "body-parser": "^1.20.2",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.9",
+    "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "moment-timezone": "^0.5.48",
+    "ms": "^2.1.3"
+  }
+}

@@ -1,0 +1,316 @@
+case 'ban': {
+  await interaction.deferReply();
+
+  const user = options.getUser('usuario');
+  const reason = options.getString('motivo') || 'Não informado';
+
+  if (!interaction.member?.permissions?.has(PermissionsBitField.Flags.BanMembers)) {
+    return interaction.editReply({ content: '❌ Você não tem permissão para banir membros.' });
+  }
+
+  const member = interaction.guild.members.cache.get(user.id);
+  if (!member) {
+    return interaction.editReply({ content: '❌ Membro não encontrado no servidor.' });
+  }
+
+  try {
+    await member.ban({ reason });
+
+    await interaction.editReply(`🔨 ${member.user.tag} foi banido.`);
+
+    // 📥 ENVIA LOG DE BAN NO CANAL
+    const logChannel = interaction.guild.channels.cache.get('1401705638668669149');
+    if (logChannel && logChannel.isTextBased()) {
+      const embed = new EmbedBuilder()
+        .setTitle('🔨 | Membro Banido')
+        .addFields(
+          { name: '👤 Membro', value: `${user.tag} (\`${user.id}\`)`, inline: true },
+          { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true },
+          { name: '📄 Motivo', value: reason, inline: false }
+        )
+        .setColor(0xff0000)
+        .setImage('https://media.tenor.com/kCbfYkT1BvQAAAAC/ban-hammer.gif')
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
+    }
+
+  } catch (error) {
+    console.error('Erro ao banir o membro:', error);
+    await interaction.editReply('❌ Ocorreu um erro ao banir esse membro.');
+  }
+
+  break;
+}
+
+case 'unban': {
+  await interaction.deferReply();
+
+  const userId = options.getString('userid');
+
+  if (!interaction.member?.permissions?.has(PermissionsBitField.Flags.BanMembers)) {
+    return interaction.editReply({ content: '❌ Você não tem permissão para desbanir membros.' });
+  }
+
+  try {
+    // Busca o usuário banido antes de desbanir (pra conseguir nome/tag)
+    const bannedUser = await interaction.guild.bans.fetch(userId);
+
+    await interaction.guild.bans.remove(userId);
+    await interaction.editReply(`✅ ${bannedUser.user.tag} foi desbanido com sucesso.`);
+
+    // 📥 LOG DE DESBAN
+    const logChannel = interaction.guild.channels.cache.get('1401705638668669149');
+    if (logChannel && logChannel.isTextBased()) {
+      const embed = new EmbedBuilder()
+        .setTitle('✅ | Membro Desbanido')
+        .addFields(
+          { name: '👤 Membro', value: `${bannedUser.user.tag}\n\`${bannedUser.user.id}\``, inline: true },
+          { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true }
+        )
+        .setColor(0x00ff00)
+        .setImage('https://media.tenor.com/HSa0eXE7HooAAAAC/unbanned-cat.gif')
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
+    }
+
+  } catch (error) {
+    console.error('Erro ao desbanir:', error);
+    await interaction.editReply({ content: '❌ Ocorreu um erro ao tentar desbanir esse usuário.' });
+  }
+
+  break;
+}
+
+case 'mute': {
+  await interaction.deferReply();
+
+  const member = options.getMember('usuario');
+  const duration = options.getString('tempo');
+  const reason = options.getString('motivo') || 'Não informado';
+
+  if (!interaction.member.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
+    return interaction.editReply({ content: '🚫 Você não tem permissão para mutar membros.' });
+  }
+
+  if (!member) {
+    return interaction.editReply({ content: '🚫 Usuário não encontrado.' });
+  }
+
+  if (!member.moderatable) {
+    return interaction.editReply({ content: '🚫 Não consigo mutar este usuário.' });
+  }
+
+  if (!duration) {
+    return interaction.editReply({ content: '⏰ Informe o tempo (ex: 10s, 5m, 1h).' });
+  }
+
+  const time = ms(duration);
+
+  if (!time || time < 1000) {
+    return interaction.editReply({ content: '❌ Formato inválido. Use: 10s, 5m, 1h, 1d.' });
+  }
+
+  try {
+    await member.timeout(time, reason);
+
+    const embedResponse = new EmbedBuilder()
+      .setTitle('✅ | Membro Mutado com Sucesso')
+      .setDescription(`O membro ${member} foi mutado por **${duration}**.`)
+      .addFields(
+        { name: '📄 Motivo', value: reason },
+        { name: '🛡️ Moderador', value: interaction.user.tag }
+      )
+      .setColor(0x00b0f4)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embedResponse] });
+
+    // 📥 ENVIA LOG NO CANAL DE LOGS
+    const logChannel = interaction.guild.channels.cache.get('1402083773264298074');
+    if (logChannel && logChannel.isTextBased()) {
+      const embedLog = new EmbedBuilder()
+        .setTitle('🔇 | Membro Mutado')
+        .addFields(
+          { name: '👤 Membro', value: `${member.user.tag}\n\`${member.id}\``, inline: true },
+          { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true },
+          { name: '⏰ Tempo', value: duration, inline: true },
+          { name: '📄 Motivo', value: reason, inline: false }
+        )
+        .setColor(0xffa500)
+        .setImage('https://media.tenor.com/2kABvuoN3y0AAAAC/shhh-silence.gif')
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embedLog] });
+    }
+
+  } catch (error) {
+    console.error('Erro ao mutar:', error);
+    return interaction.editReply({ content: '❌ Erro ao tentar mutar o usuário.' });
+  }
+
+  break;
+}
+
+case 'unmute': {
+  await interaction.deferReply();
+
+  const member = options.getMember('usuario');
+
+  if (!interaction.member?.permissions?.has(PermissionsBitField.Flags.ModerateMembers)) {
+    return interaction.editReply({ content: '🚫 Você não tem permissão para desmutar membros.' });
+  }
+
+  if (!member || !member.moderatable) {
+    return interaction.editReply({ content: '🚫 Não consigo desmutar este membro.' });
+  }
+
+  try {
+    await member.timeout(null);
+    await interaction.editReply(`✅ ${member} foi desmutado.`);
+
+    // 📥 LOG DE DESMUTE
+    const logChannel = interaction.guild.channels.cache.get('1402083773264298074');
+    if (logChannel && logChannel.isTextBased()) {
+      const embed = new EmbedBuilder()
+        .setTitle('🔊 | Membro Desmutado')
+        .addFields(
+          { name: '👤 Membro', value: `${member.user.tag}\n\`${member.id}\``, inline: true },
+          { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true }
+        )
+        .setColor(0x00ccff)
+        .setImage('https://media.tenor.com/F7n0pDjBOB8AAAAd/now-you-may-speak.gif')
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
+    }
+
+  } catch (error) {
+    console.error('Erro ao desmutar:', error);
+    return interaction.editReply({ content: '❌ Erro ao tentar desmutar o usuário.' });
+  }
+
+  break;
+}
+
+case 'mutecall': {
+  await interaction.deferReply();
+
+  const member = options.getMember('usuario');
+  const tempo = options.getString('tempo');
+  const motivo = options.getString('motivo') || 'Não informado';
+
+  if (!interaction.member?.permissions?.has(PermissionsBitField.Flags.MuteMembers)) {
+    return interaction.editReply({ content: '🚫 Você não tem permissão para mutar membros na call.' });
+  }
+
+  if (!member?.voice?.channel) {
+    return interaction.editReply({ content: '🚫 O usuário não está em um canal de voz.' });
+  }
+
+  const durationMs = tempo ? ms(tempo) : null;
+
+  try {
+    await member.voice.setMute(true);
+    
+    const replyEmbed = new EmbedBuilder()
+      .setTitle('🔇 | Membro Mutado na Call')
+      .addFields(
+        { name: '👤 Membro', value: `${member.user.tag} (\`${member.id}\`)`, inline: true },
+        { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true },
+        { name: '📄 Motivo', value: motivo, inline: false },
+        ...(durationMs ? [{ name: '⏰ Tempo', value: tempo, inline: true }] : [])
+      )
+      .setColor(0xffa500)
+      .setImage('https://media.tenor.com/2kABvuoN3y0AAAAC/shhh-silence.gif')
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [replyEmbed] });
+
+    // ✅ ENVIA LOG PARA O CANAL
+    const logChannel = interaction.guild.channels.cache.get('1402083773264298074');
+    if (logChannel?.isTextBased()) {
+      await logChannel.send({ embeds: [replyEmbed] });
+    }
+
+    // 🔁 DESMUTE AUTOMÁTICO
+    if (durationMs) {
+      setTimeout(async () => {
+        if (member.voice.channel) {
+          await member.voice.setMute(false);
+          const unmuteEmbed = new EmbedBuilder()
+            .setTitle('🔊 | Desmute Automático')
+            .setDescription(`O usuário ${member.user.tag} foi desmutado automaticamente após \`${tempo}\`.`)
+            .setColor(0x00ff00)
+            .setTimestamp();
+
+          await interaction.followUp({ embeds: [unmuteEmbed] });
+
+          if (logChannel?.isTextBased()) {
+            await logChannel.send({ embeds: [unmuteEmbed] });
+          }
+        }
+      }, durationMs);
+    }
+
+  } catch (err) {
+    console.error('Erro ao mutar na call:', err);
+    await interaction.editReply({ content: '❌ Erro ao tentar mutar o usuário na call.' });
+  }
+
+  break;
+}
+
+case 'unmutecall': {
+  await interaction.deferReply();
+  const member = options.getMember('usuario');
+
+  if (!interaction.member?.permissions?.has(PermissionsBitField.Flags.MuteMembers)) {
+    return interaction.editReply({ content: '🚫 Você não tem permissão para desmutar membros na call.' });
+  }
+
+  if (!member || !member.voice.channel) {
+    return interaction.editReply({ content: '🎧 O usuário não está em um canal de voz.' });
+  }
+
+  try {
+    await member.voice.setMute(false);
+
+    // ✅ Embed de resposta
+    const embedResposta = new EmbedBuilder()
+      .setTitle('🔊 | Membro Desmutado na Call')
+      .setDescription(`${member} foi desmutado com sucesso da call.`)
+      .addFields(
+        { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true },
+        { name: '🎧 Canal de voz', value: `${member.voice.channel}`, inline: true }
+      )
+      .setColor(0x00ccff)
+     .setFooter({ text: 'Ghost', iconURL: 'https://cdn.discordapp.com/emojis/1405673526257516614.png' });
+
+    await interaction.editReply({ embeds: [embedResposta] });
+
+    // 📥 Log no canal de logs
+    const logChannel = interaction.guild.channels.cache.get('1402083773264298074');
+    if (logChannel && logChannel.isTextBased()) {
+      const embedLog = new EmbedBuilder()
+        .setTitle('🔊 | Membro Desmutado na Call')
+        .addFields(
+          { name: '👤 Membro', value: `${member.user.tag}\n\`${member.id}\``, inline: true },
+          { name: '🛡️ Moderador', value: `${interaction.user.tag}`, inline: true },
+          { name: '🎧 Canal de voz', value: `${member.voice.channel.name}`, inline: true }
+        )
+        .setColor(0x00ccff)
+        .setImage('https://media.tenor.com/Rp3Ha1yInq4AAAAd/unmute-call.gif')
+        .setFooter({ text: 'Ghost', iconURL: 'https://cdn.discordapp.com/emojis/1405673526257516614.png' });
+
+      await logChannel.send({ embeds: [embedLog] });
+    }
+
+  } catch (err) {
+    console.error('Erro ao desmutar na call:', err);
+    return interaction.editReply({ content: '❌ Erro ao tentar desmutar o usuário na call.' });
+  }
+
+  break;
+}

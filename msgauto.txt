@@ -1,0 +1,11 @@
+setInterval(() => {
+    const horaPT = moment().tz("America/Sao_Paulo").hour();
+    const minutoPT = moment().tz("America/Sao_Paulo").minute();
+
+    if (horaPT === 10 && minutoPT === 0) {
+        const canal = client.channels.cache.get('1401686005727367289');
+        if (canal) {
+            canal.send("ESCREVA AQUI!");
+        }
+    }
+}, 60 * 1000);
